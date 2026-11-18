@@ -76,6 +76,39 @@ def feather(m, feather_px):
     return np.clip(cv2.GaussianBlur(m.astype(np.float32), (0, 0), feather_px / 2.0), 0, 1)
 
 
+def identity_evidence(raw, names, n, step=10):
+    """Measured evidence of what each raw mask set is (area, centroid, bbox, mutual overlap), sampled every `step` frames."""
+    ev = {}
+    for nm in names:
+        areas, cx, cy, boxes = [], [], [], []
+        for i in range(0, n, step):
+            m = load_mask(raw, nm, i)
+            if m is None or not m.any():
+                continue
+            ys, xs = np.nonzero(m)
+            areas.append(int(m.sum())); cx.append(float(xs.mean())); cy.append(float(ys.mean()))
+            boxes.append([int(xs.min()), int(ys.min()), int(xs.max()), int(ys.max())])
+        if areas:
+            ev[nm] = {"median_area_px": int(np.median(areas)), "centroid_xy_mean": [round(float(np.mean(cx)), 1), round(float(np.mean(cy)), 1)],
+                      "bbox_median_xyxy": [int(v) for v in np.median(np.array(boxes), axis=0)], "sampled_frames": len(areas)}
+    if all(k in ev for k in ("performer", "piano")):
+        ov_pp, ov_rp, ov_rpf, rin = [], [], [], []
+        for i in range(0, n, step):
+            P, Q = load_mask(raw, "performer", i), load_mask(raw, "piano", i)
+            ov_pp.append(int((P & Q).sum()))
+            R = load_mask(raw, "reflection", i)
+            if R is not None and R.any():
+                ov_rp.append(int((R & Q).sum())); ov_rpf.append(int((R & P).sum()))
+                x0, y0, x1, y1 = ev["piano"]["bbox_median_xyxy"]
+                ys, xs = np.nonzero(R)
+                rin.append(bool(x0 <= xs.mean() <= x1 and y0 <= ys.mean() <= y1))
+        ev["overlaps_px_median"] = {"performer_and_piano": int(np.median(ov_pp)),
+                                    "reflection_and_piano": int(np.median(ov_rp)) if ov_rp else None,
+                                    "reflection_and_performer": int(np.median(ov_rpf)) if ov_rpf else None,
+                                    "reflection_centroid_inside_piano_bbox_fraction": round(float(np.mean(rin)), 3) if rin else None}
+    return ev
+
+
 def load_mask(raw, name, i):
     p = os.path.join(raw, name, f"{i:05d}.png")
     if not os.path.exists(p):
@@ -262,6 +295,8 @@ def main():
     assert (dw, dh) == (W, H), f"mask size {W}x{H} != displayed source size {dw}x{dh} (rotation {rot})"
     assert abs(N - expected) <= 1, f"mask count {N} != expected frames {expected} for {a.seconds}s at {fps_str}"
     has_refl = raw_sets["reflection"] == N
+    id_evidence = identity_evidence(a.raw, ["performer", "piano"] + (["reflection"] if has_refl else []), N)
+    print("identity evidence:", json.dumps(id_evidence))
 
     root = a.out
     sub = {k: os.path.join(root, k) for k in ("source", "alpha", "masks/combined", "masks/performer", "masks/piano", "masks/outline", "previews", "config")}
@@ -403,6 +438,7 @@ def main():
         "alpha_format": {"container": "QuickTime .mov", "codec": "ProRes 4444 (prores_ks, profile 4444)", "pix_fmt": "encoded from yuva444p10le (ffprobe reports the decoded format as yuva444p12le)",
                          "alpha_bits": 16, "alpha_mode": "STRAIGHT (non-premultiplied); RGB is not multiplied by alpha",
                          "colour": "BT.709, limited range, tagged", "frame_rate_preserved": True},
+        "mask_identity_evidence": id_evidence,
         "mask_identities": {"verified_by": "mask area/centroid/overlap statistics below plus visual crops; NOT by overlay colours",
                             "performer": "SAM 3 text prompt 'person playing piano', object id 0 (largest, person body/hands/face)",
                             "reflection": "same prompt, object id 1 (small, located in the piano lid: the reflection of the hands)" if has_refl else "NOT AVAILABLE in this run",
