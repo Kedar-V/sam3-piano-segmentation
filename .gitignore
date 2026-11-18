@@ -1,0 +1,11 @@
+inputs/
+outputs/
+*.mov
+*.mp4
+*.mp3
+*.wav
+__pycache__/
+.venv/
+node_modules/
+.DS_Store
+.env
