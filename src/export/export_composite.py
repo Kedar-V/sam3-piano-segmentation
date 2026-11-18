@@ -388,7 +388,8 @@ def main():
     sync = {"source_frames_in_segment": len(ts), "masks": N, "foreground_mov_frames": int(files["alpha/foreground_alpha.mov"]["nb_read_frames"]),
             "mov_fps": files["alpha/foreground_alpha.mov"]["r_frame_rate"], "source_fps": fps_str,
             "mov_pts_constant_step": bool(len(mov_ts) > 1 and np.allclose(np.diff(mov_ts), 1 / fps, atol=1e-4)),
-            "source_pts_max_deviation_from_ideal_s": round(float(np.max(np.abs(np.array(ts) - (a.start + np.arange(len(ts)) / fps)))), 5) if ts else None,
+            "source_pts_max_deviation_from_ideal_s": round(float(np.max(np.abs((np.array(ts) - ts[0]) - np.arange(len(ts)) / fps))), 5) if ts else None,
+            "source_first_pts_s": ts[0] if ts else None,
             "mov_pts_max_deviation_from_ideal_s": round(float(np.max(np.abs(np.array(mov_ts) - np.arange(len(mov_ts)) / fps))), 5) if mov_ts else None,
             "video_duration_s": round(N / fps, 4), "audio_duration_s": audio_dur,
             "audio_minus_video_s": None if audio_dur is None else round(audio_dur - N / fps, 4)}
