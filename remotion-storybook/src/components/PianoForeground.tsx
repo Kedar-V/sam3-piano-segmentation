@@ -2,7 +2,7 @@ import React from 'react';
 import {AbsoluteFill, Easing, interpolate, OffthreadVideo, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
 import type {StorybookConfig} from '../config/storybook';
 import {hexToRgb01, pad5, SoftOutline} from './SoftOutline';
-import {useImageReady} from './useImageReady';
+import {useFrameMask} from './useMaskStyle';
 
 /** 4x5 colour matrix: saturation -> per-channel warm gain -> contrast -> lifted blacks / warm highlights. */
 const gradeMatrix = (g: StorybookConfig['grade']): string => {
@@ -33,11 +33,7 @@ export const PianoForeground: React.FC<{cfg: StorybookConfig}> = ({cfg}) => {
   const [dx, dy] = camera.driftPx.subject;
 
   const plate = footage.mode === 'plateMatte';
-  const maskUrl = staticFile(`${plate ? footage.matteDir : footage.keepDir}/${pad5(frame)}.png`);
-  const maskReady = useImageReady(maskUrl);
-  const maskStyle: React.CSSProperties = maskReady
-    ? {WebkitMaskImage: `url(${maskUrl})`, maskImage: `url(${maskUrl})`, WebkitMaskSize: '100% 100%', maskSize: '100% 100%'}
-    : {};
+  const {style: maskStyle, holder} = useFrameMask(plate ? footage.matteDir : footage.keepDir, frame);
 
   const wrapSize = Math.max(1, lightWrap.sizePx);
   return (
@@ -54,7 +50,7 @@ export const PianoForeground: React.FC<{cfg: StorybookConfig}> = ({cfg}) => {
             ) : (
               <feOffset in="graded" dx="0" dy="0" result="gradedSoft" />
             )}
-            {lightWrap.enabled ? (
+            {lightWrap.enabled && lightWrap.mode === 'tint' ? (
               <>
                 <feMorphology in="SourceAlpha" operator="erode" radius={wrapSize} result="eroded" />
                 <feComposite in="SourceAlpha" in2="eroded" operator="out" result="band" />
@@ -72,6 +68,7 @@ export const PianoForeground: React.FC<{cfg: StorybookConfig}> = ({cfg}) => {
         </defs>
       </svg>
       {/* outline sits behind; footage (alpha video or plate) is masked, then graded/wrapped by the SVG filter */}
+      {holder}
       <SoftOutline cfg={cfg} />
       <AbsoluteFill style={{filter: 'url(#pf-finish)'}}>
         <AbsoluteFill style={maskStyle}>

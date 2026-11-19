@@ -8,7 +8,10 @@ src/
   compositions/PianoStorybook.tsx     layer order + timeline
   components/IllustratedBackground.tsx  back / mid / front illustration layers (parallax, push-in, sway)
   components/PianoForeground.tsx        the performance: matte/alpha, grade, light wrap
-  components/SoftOutline.tsx            off-white silhouette outline (separate matte, not baked)
+  components/SoftOutline.tsx            off-white silhouette outline (separate matte, not baked; fades out below the keyboard)
+  components/ContactShadow.tsx          soft shadow + lower-body occlusion that ground the performer in the garden
+  components/LightWrap.tsx              sampled light wrap: blurred garden bleeding onto a band just inside the edge
+  components/SafeZoneGuide.tsx          debug overlay of the approximate Reels UI zones
   components/FloatingPetals.tsx         seeded drifting petals
   components/PaperTexture.tsx           paper overlay + shared film grain
   components/CinematicTitle.tsx         serif caption
@@ -24,6 +27,7 @@ npm install
 npm run studio                                   # live preview
 npx remotion still src/index.ts PianoStorybook out/frame.png --frame=120
 npm run render                                   # -> out/piano_storybook_demo.mp4 (H.264, CRF 16, yuv420p, BT.709)
+npx remotion still src/index.ts PianoStorybook out/safe.png --frame=120 --props='{"showSafeZones":true}'   # check Reels UI zones
 ```
 Use React 18 (pinned). React 19.3 failed to load the Remotion root in headless Chrome.
 
@@ -36,7 +40,7 @@ cp -cR $SRC/masks/outline public/masks/outline && cp -cR $SRC/masks/combined pub
 # opaque 10 s plate: the same 240 frames as the export, from the untouched source video
 ffmpeg -i /path/to/TujhseNarazPiano.mov -t 10 -an -fps_mode passthrough -c:v libx264 -preset slow -crf 8 -pix_fmt yuv420p \
   -colorspace bt709 -color_primaries bt709 -color_trc bt709 public/footage/plate_10s.mp4
-python scripts/make_mattes.py 7 5000 1500        # gap-closed matte + outline from the refined masks
+python scripts/make_mattes.py 7 5000 1500 10     # gap-closed matte, outline and light-wrap band from the refined masks
 python scripts/make_keep_masks.py 5000 8         # only needed for footage.mode = 'alphaVideo'
 python scripts/make_illustrations.py             # regenerate the prototype illustration layers (needs numpy, scipy, opencv, pillow)
 ```
@@ -59,16 +63,18 @@ Source assets (original video, `foreground_alpha.mov`, raw masks, SAM 3 outputs)
    Keep the zone around the hands and keyboard quiet. No re-segmentation is needed for a new scene.
 
 ## Replace the text
-Edit `title` in `src/config/storybook.ts`: `lines` (explicit line breaks), `fontFamily`, `fontSize`, `color`, position (`centerX`, `topPx`) and
-fade frames. For Hindi lyrics load a Devanagari font in `CinematicTitle.tsx`, e.g.
+Edit `title` in `src/config/storybook.ts`: `lines` (explicit line breaks), `fontFamily`, `fontSize`, `color`, position (`centerX`, `topPx`),
+`scrimOpacity` (a very soft dark glow behind the text for legibility, not a shadow) and fade frames. Keep it below the Reels header (`safeZones.top`). For Hindi lyrics load a Devanagari font in `CinematicTitle.tsx`, e.g.
 `import {loadFont} from '@remotion/google-fonts/TiroDevanagariHindi'`, and set `fontFamily` to it. The title sits in the upper right, clear of the face.
 
 ## Key parameters (`src/config/storybook.ts`)
 | Group | Notes |
 |---|---|
-| `outline` | `color #F5EBDD`, `widthPx 3` (matte is exported at 3 px; larger dilates it), `blurPx 1.5`, `opacity 0.65`. External silhouette only. |
+| `outline` | `color #F5EBDD`, `widthPx 3` (matte is exported at 3 px; larger dilates it), `blurPx 1.5`, `opacity 0.65`. External silhouette only, faded out between `fadeOutFromY` and `fadeOutToY` (the leg/piano gap is open to the frame edge, so it would be outlined). |
 | `edgeFeatherExtraPx` | Extra alpha softening. The matte/export already has ~2 px feather, so default 0. |
-| `lightWrap` | Simplified rim light: an SVG filter band just inside the silhouette tinted with `color`, `opacity 0.15`. It does not sample the background. |
+| `lightWrap` | `mode: 'sampled'` (default): the blurred back+mid garden layers show through a ~10 px band inside the edge at `opacity 0.15` (`blurPx` 16). `mode: 'tint'`: older flat-colour rim. |
+| `contactShadow`, `ambientOcclusion` | Blurred silhouette shadow cast to the lower-left (strongest near the bottom) and a faint occlusion around the lower body. Darkens the gap between legs and piano so it reads as shadow. |
+| `safeZones` | Approximate Reels UI areas (header 250 px, caption 400 px, right icon column x>930). Not official numbers; check against a real upload. |
 | `grade` | Foreground only: saturation 0.92, contrast 0.96, lifted blacks, slight warmth. Skin tones and the black piano stay natural. |
 | `camera` | Eased push-in (slows toward the end) with per-layer scale and drift for parallax; leaf/flower sway. |
 | `petals` | 9 slow petals between ~4.6 s and ~9 s, kept clear of the face (`minX`) and hands (`maxY`). Deterministic (`seed`). |
@@ -89,6 +95,7 @@ or commissioned in the reference's style (hand-painted Indian storybook, muted o
 - optionally separate drifting-petal sprites (petals are currently drawn as simple SVG shapes).
 
 ## Known limitations
-- Outline/light wrap follow the matte, so any matte error shows up there. Dark patches under the legs (bench/shadow) are part of the exported mask.
+- Outline/light wrap follow the matte, so any matte error shows up there. Dark patches under the legs (bench/shadow) are part of the exported mask; the contact shadow now blends them in but does not remove them.
+- The keyboard runs off the right edge of the source framing, so the Reels icon column overlaps part of the keys. Fixing that would mean shifting/scaling the performer and cropping the back.
 - Masks are binary-derived, not true alpha mattes: hair strands and finger motion blur are not matted.
 - The footage is a 10 s segment (0:00-0:10 of the source). A different segment needs a new SAM 3 run and export first.

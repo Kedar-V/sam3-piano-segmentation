@@ -58,9 +58,16 @@ export const storybook = {
     widthPx: 3, // the exported matte is 3px; larger values dilate it, smaller values need a re-export
     blurPx: 1.5, // extra blur on top of the matte's own softness
     opacity: 0.65,
+    fadeOutFromY: 1250, // fade the outline out below the keyboard (the gap between legs and piano is open at the frame edge)
+    fadeOutToY: 1450,
   },
+  // soft shadow of the performer + piano on the garden, strongest near the bottom, cast away from the upper-right light
+  contactShadow: {enabled: true, color: '#0d1208', opacity: 0.55, blurPx: 22, offsetPx: [-14, 16] as [number, number], fromY: 700, toY: 1500},
+  ambientOcclusion: {enabled: true, color: '#0d1208', opacity: 0.18, blurPx: 34, fromY: 650, toY: 1150}, // faint darkening around the lower body only (no halo around the head)
   edgeFeatherExtraPx: 0, // extra alpha softening on top of the 2px already in the export
-  lightWrap: { enabled: true, opacity: 0.15, color: '#E9C98E', sizePx: 7 },
+  // 'sampled': the blurred garden bleeds onto a soft band just inside the silhouette edge (band width is set in make_mattes.py).
+  // 'tint': older flat-colour rim via SVG filter.
+  lightWrap: {enabled: true, mode: 'sampled' as 'sampled' | 'tint', opacity: 0.15, blurPx: 16, bandDir: 'masks/wrapband', color: '#E9C98E', sizePx: 7},
 
   // ---- colour matching (foreground only; keeps skin tones and the black piano realistic) ----
   grade: {
@@ -85,6 +92,9 @@ export const storybook = {
     minX: 560, // and clear of the face (face spans roughly x 100-370 at y 330-800)
   },
 
+  // ---- approximate Instagram Reels UI zones (not official numbers): header, caption/audio, right icon column ----
+  safeZones: {top: 250, bottom: 400, rightColumn: {x: 930, y0: 900, y1: 1700}},
+
   // ---- typography ----
   title: {
     text: 'Some melodies never get old',
@@ -95,8 +105,9 @@ export const storybook = {
     fontSize: 94,
     color: '#F2E3B3',
     letterSpacing: 1.5,
-    centerX: 0.62, // fraction of width (kept right of the head)
-    topPx: 128,
+    centerX: 0.66, // fraction of width (kept right of the head)
+    topPx: 262, // below the Reels header (see safeZones)
+    scrimOpacity: 0.3, // very soft dark glow behind the text for legibility over blossoms (not a text shadow)
     fadeInFrames: [8, 52] as [number, number],
     fadeOutFrames: [196, 224] as [number, number],
     risePx: 22,

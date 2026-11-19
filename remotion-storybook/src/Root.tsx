@@ -11,6 +11,6 @@ export const Root: React.FC = () => (
     fps={storybook.fps}
     width={storybook.width}
     height={storybook.height}
-    defaultProps={{cfg: storybook}}
+    defaultProps={{cfg: storybook, showSafeZones: false}}
   />
 );

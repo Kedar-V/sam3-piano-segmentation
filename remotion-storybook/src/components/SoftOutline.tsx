@@ -21,8 +21,9 @@ export const SoftOutline: React.FC<{cfg: StorybookConfig}> = ({cfg}) => {
   if (!o.enabled) return null;
   const [r, g, b] = hexToRgb01(o.color);
   const dilate = Math.max(0, (o.widthPx - 3) / 2); // matte is exported at 3px
+  const fade = `linear-gradient(to bottom, black ${(o.fadeOutFromY / 1920) * 100}%, transparent ${(o.fadeOutToY / 1920) * 100}%)`;
   return (
-    <AbsoluteFill>
+    <AbsoluteFill style={{WebkitMaskImage: fade, maskImage: fade}}>
       <svg width={0} height={0} style={{position: 'absolute'}}>
         <defs>
           <filter id="pf-outline" x="-2%" y="-2%" width="104%" height="104%" colorInterpolationFilters="sRGB">

@@ -41,8 +41,18 @@ export const CinematicTitle: React.FC<{cfg: StorybookConfig}> = ({cfg}) => {
           whiteSpace: 'nowrap',
         }}
       >
+        {t.scrimOpacity > 0 && (
+          <div
+            style={{
+              position: 'absolute',
+              inset: '-40% -18%',
+              zIndex: -1,
+              background: `radial-gradient(ellipse at center, rgba(16,20,10,${t.scrimOpacity}) 0%, rgba(16,20,10,0) 70%)`,
+            }}
+          />
+        )}
         {lines.map((l, i) => (
-          <div key={i}>{l}</div>
+          <div key={i} style={{position: 'relative'}}>{l}</div>
         ))}
       </div>
     </AbsoluteFill>
