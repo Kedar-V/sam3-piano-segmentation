@@ -1,0 +1,15 @@
+{
+  "outline": {
+    "enabled": true,
+    "color": "#F5EBDD",
+    "widthPx": 3,
+    "blurPx": 1.5,
+    "opacity": 0.65,
+    "externalSilhouetteOnly": true
+  },
+  "edgeFeatherPx": 2,
+  "lightWrap": {
+    "enabled": true,
+    "opacity": 0.15
+  }
+}

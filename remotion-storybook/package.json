@@ -1,0 +1,21 @@
+{
+  "name": "piano-storybook",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "still": "remotion still src/index.ts PianoStorybook",
+    "render": "remotion render src/index.ts PianoStorybook out/piano_storybook_demo.mp4 --codec h264 --crf 16 --pixel-format yuv420p --color-space bt709"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.545",
+    "@remotion/google-fonts": "^4.0.545",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "remotion": "^4.0.545"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.31",
+    "typescript": "^7.0.2"
+  }
+}
